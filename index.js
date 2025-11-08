@@ -1,19 +1,34 @@
-// === Astro Mídia - Criadora: <@1431337094302662761> ===
-// Bot completo, modo híbrido (Render + Local), com prefixo e slash commands
+// ================================
+// Bot Astro Mídia - Comunidade RP
+// Criadora: <@1431337094302662761>
+// ================================
 
+const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, Events, PermissionsBitField } = require("discord.js");
 const fs = require("fs");
-const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, PermissionsBitField } = require("discord.js");
-const { REST, Routes } = require("discord.js");
 const path = require("path");
+require("dotenv").config();
 
-// --- CONFIG GLOBAL ---
-const PREFIX = process.env.PREFIX || "!";
-const TOKEN = process.env.TOKEN;
+// ================================
+// Configuração inicial
+// ================================
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.MessageContent
+    ],
+    partials: [Partials.Channel, Partials.Message, Partials.User]
+});
 
-// Detecta ambiente
+const prefix = process.env.PREFIX || "!";
+client.commands = new Collection();
+
+// ================================
+// Modo híbrido (Render / Local)
+// ================================
 const isRender = process.env.RENDER || process.env.RENDER_SERVICE_NAME;
 
-// Carrega config se local
 let config = {
     systems: {
         welcome: true,
@@ -24,11 +39,9 @@ let config = {
         status: true,
     },
     embeds: {
-        welcome: { title: "👋 Bem-vindo(a)!", description: "Seja bem-vindo(a) ao servidor!", color: "#5865F2" },
+        welcome: { title: "👋 Bem-vindo(a)!", description: "Seja bem-vindo(a) ao servidor Astro Mídia!", color: "#5865F2" },
         ticket: { title: "🎟️ Sistema de Tickets", description: "Abra um ticket abaixo:", color: "#57F287" }
-    },
-    channels: {},
-    roles: {}
+    }
 };
 
 if (!isRender) {
@@ -40,146 +53,143 @@ if (!isRender) {
     }
 }
 
-// --- CLIENT ---
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
-    ],
-    partials: [Partials.Channel]
-});
-
-client.commands = new Collection();
-
-// --- REGISTRO DE COMANDOS SLASH ---
+// ================================
+// Slash Commands
+// ================================
 const slashCommands = [
-    {
-        name: "config",
-        description: "Configura o Astro Mídia no servidor.",
-    },
-    {
-        name: "info",
-        description: "Mostra informações do bot e do criador do servidor."
-    },
-    {
-        name: "inforoblox",
-        description: "Mostra informações de um usuário do Roblox.",
-        options: [
-            { name: "usuario", type: 3, description: "Nome do usuário do Roblox", required: true }
-        ]
-    }
+    { name: "lock", description: "Tranca o canal." },
+    { name: "unlock", description: "Destranca o canal." },
+    { name: "avisos", description: "Mostra os avisos do servidor." },
+    { name: "clear", description: "Limpa mensagens do canal." },
+    { name: "fala", description: "Faz o bot falar algo." },
+    { name: "ban", description: "Bane um usuário do servidor.", options: [{ name: "usuario", type: 6, description: "Escolha o usuário", required: true }] },
+    { name: "unban", description: "Desbane um usuário.", options: [{ name: "id", type: 3, description: "ID do usuário", required: true }] },
+    { name: "kick", description: "Expulsa um usuário.", options: [{ name: "usuario", type: 6, description: "Escolha o usuário", required: true }] },
+    { name: "mute", description: "Silencia um usuário.", options: [{ name: "usuario", type: 6, description: "Escolha o usuário", required: true }] },
+    { name: "addrole", description: "Adiciona um cargo a um usuário.", options: [{ name: "usuario", type: 6, description: "Escolha o usuário", required: true }, { name: "cargo", type: 8, description: "Escolha o cargo", required: true }] },
+    { name: "roleall", description: "Adiciona cargo a todos os membros.", options: [{ name: "cargo", type: 8, description: "Escolha o cargo", required: true }] },
+    { name: "parceira", description: "Cria uma parceria com outro servidor." },
+    { name: "config", description: "Configura sistemas do bot." },
+    { name: "info", description: "Mostra informações do bot e do servidor." },
+    { name: "inforoblox", description: "Mostra informações do Roblox.", options: [{ name: "usuario", type: 3, description: "Nome do usuário Roblox", required: true }] },
 ];
 
-// --- EVENT READY ---
+// ================================
+// Ready
+// ================================
 client.once("ready", async () => {
     console.log(`✅ ${client.user.tag} está online!`);
-    client.user.setActivity("astro mídia", { type: 0 }); // Jogando astro mídia
+    client.user.setActivity("🌌 Astro Mídia RP — Online 24h", { type: 0 });
 
-    // Registra slash commands
-    const rest = new REST({ version: "10" }).setToken(TOKEN);
+    const { REST, Routes } = require("discord.js");
+    const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
     try {
         await rest.put(Routes.applicationCommands(client.user.id), { body: slashCommands });
         console.log("✨ Comandos slash registrados com sucesso!");
-    } catch (err) {
-        console.error("Erro ao registrar slash:", err);
-    }
+    } catch (err) { console.error(err); }
 });
 
-// --- SISTEMA DE BOAS-VINDAS ---
+// ================================
+// Boas-vindas com botões
+// ================================
 client.on("guildMemberAdd", member => {
     if (!config.systems.welcome) return;
+
     const canal = member.guild.systemChannel;
-    if (canal) {
-        const embed = new EmbedBuilder()
-            .setTitle(config.embeds.welcome.title)
-            .setDescription(`${config.embeds.welcome.description}\n👤 ${member}`)
-            .setColor(config.embeds.welcome.color);
-        canal.send({ embeds: [embed] });
+    if (!canal) return;
+
+    const embed = new EmbedBuilder()
+        .setTitle(config.embeds.welcome.title)
+        .setDescription(`${config.embeds.welcome.description}\n👤 ${member}`)
+        .setColor(config.embeds.welcome.color)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setFooter({ text: "Astro Mídia | Comunidade RP", iconURL: client.user.displayAvatarURL() });
+
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder().setLabel("🎟️ Abrir Ticket").setStyle(ButtonStyle.Primary).setCustomId("abrir_ticket"),
+            new ButtonBuilder().setLabel("📜 Regras").setStyle(ButtonStyle.Secondary).setCustomId("ver_regras")
+        );
+
+    canal.send({ embeds: [embed], components: [row] });
+});
+
+// ================================
+// Interação com botões
+// ================================
+client.on(Events.InteractionCreate, async interaction => {
+    if (interaction.isButton()) {
+        if (interaction.customId === "abrir_ticket") {
+            await interaction.reply({ content: "🎫 Ticket aberto! Um membro da staff entrará em contato.", ephemeral: true });
+        }
+        if (interaction.customId === "ver_regras") {
+            await interaction.reply({ content: "📜 Respeite todos os membros e siga o RP corretamente!", ephemeral: true });
+        }
+    }
+    if (interaction.isChatInputCommand()) {
+        const { commandName, options } = interaction;
+
+        // Exemplo de comando: ban
+        if (commandName === "ban") {
+            const usuario = options.getUser("usuario");
+            if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+                return interaction.reply({ content: "❌ Sem permissão!", ephemeral: true });
+            }
+            await interaction.guild.members.ban(usuario.id, { reason: "Banido pelo Astro Mídia" });
+            return interaction.reply({ content: `🔨 ${usuario.tag} foi banido.` });
+        }
+
+        if (commandName === "unban") {
+            const id = options.getString("id");
+            await interaction.guild.members.unban(id);
+            return interaction.reply({ content: `✅ Usuário com ID ${id} desbanido.` });
+        }
+
+        if (commandName === "info") {
+            const dono = await interaction.guild.fetchOwner();
+            const embed = new EmbedBuilder()
+                .setTitle("🤖 Astro Mídia - Informações")
+                .setDescription(`Criadora do bot: <@1431337094302662761>\nCriador do servidor: ${dono.user.tag}`)
+                .setColor("#57F287");
+            return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+        if (commandName === "inforoblox") {
+            const usuario = options.getString("usuario");
+            return interaction.reply({ content: `🔍 Buscando informações do Roblox para **${usuario}**...` });
+        }
+
+        // Aqui você pode adicionar os outros comandos: /kick, /mute, /addrole, /roleall, /parceira, /clear, /lock, /unlock, /avisos, /fala, /config
     }
 });
 
-// --- COMANDOS DE TEXTO (PREFIXO) ---
-client.on("messageCreate", async (message) => {
-    if (message.author.bot || !message.guild) return;
-    if (!message.content.startsWith(PREFIX)) return;
+// ================================
+// Mensagens com prefixo (!)
+// ================================
+client.on("messageCreate", message => {
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
 
-    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
     const cmd = args.shift().toLowerCase();
 
-    // --- BAN ---
-    if (cmd === "ban") {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.BanMembers))
-            return message.reply("❌ Você não tem permissão para banir!");
-        const user = message.mentions.members.first();
-        if (!user) return message.reply("❌ Mencione um usuário!");
-        await user.ban({ reason: "Banido pelo Astro Mídia" });
-        message.reply(`🔨 ${user.user.tag} foi banido.`);
+    if (cmd === "ping") {
+        return message.reply({ embeds: [new EmbedBuilder()
+            .setTitle("🏓 Pong!")
+            .setDescription(`Latência: **${client.ws.ping}ms**`)
+            .setColor("#5865F2")
+        ]});
     }
 
-    // --- UNBAN ---
-    else if (cmd === "unban") {
-        const id = args[0];
-        if (!id) return message.reply("❌ Forneça o ID do usuário.");
-        await message.guild.members.unban(id);
-        message.reply(`✅ Usuário com ID ${id} foi desbanido.`);
-    }
-
-    // --- CLEAR ---
-    else if (cmd === "clear") {
-        if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages))
-            return message.reply("❌ Sem permissão!");
-        const amount = parseInt(args[0]);
-        if (!amount) return message.reply("❌ Diga quantas mensagens apagar!");
-        await message.channel.bulkDelete(amount);
-        message.channel.send(`🧹 ${amount} mensagens apagadas.`);
-    }
-
-    // --- CONFIG (prefixo) ---
-    else if (cmd === "config") {
-        message.reply("⚙️ Use o comando `/config` para configurar o bot!");
-    }
-
-    // --- INFO ---
-    else if (cmd === "info") {
-        const owner = await message.guild.fetchOwner();
-        const embed = new EmbedBuilder()
-            .setTitle("🤖 Astro Mídia - Informações")
-            .setDescription(`Criadora do bot: <@1431337094302662761>\nCriador do servidor: ${owner.user}`)
-            .setColor("#5865F2");
-        message.reply({ embeds: [embed] });
+    if (cmd === "info") {
+        return message.reply({ embeds: [new EmbedBuilder()
+            .setTitle("🤖 Astro Mídia - Info")
+            .setDescription(`Criadora do bot: <@1431337094302662761>`)
+            .setColor("#57F287")
+        ]});
     }
 });
 
-// --- INTERAÇÃO DE SLASH ---
-client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-
-    const { commandName } = interaction;
-
-    if (commandName === "config") {
-        const embed = new EmbedBuilder()
-            .setTitle("⚙️ Painel de Configuração")
-            .setDescription("Use os botões abaixo para ativar/desativar sistemas.")
-            .setColor("#5865F2");
-        await interaction.reply({ embeds: [embed], ephemeral: true });
-    }
-
-    if (commandName === "info") {
-        const owner = await interaction.guild.fetchOwner();
-        const embed = new EmbedBuilder()
-            .setTitle("🤖 Astro Mídia - Informações")
-            .setDescription(`Criadora: <@1431337094302662761>\nCriador do servidor: ${owner.user}`)
-            .setColor("#57F287");
-        await interaction.reply({ embeds: [embed], ephemeral: true });
-    }
-
-    if (commandName === "inforoblox") {
-        const user = interaction.options.getString("usuario");
-        await interaction.reply(`🔍 Buscando informações de **${user}** no Roblox...`);
-        // Aqui entraria a API do Roblox futuramente
-    }
-});
-
-client.login(TOKEN);
+// ================================
+// Login
+// ================================
+client.login(process.env.TOKEN);
