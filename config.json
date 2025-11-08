@@ -1,0 +1,34 @@
+{
+  "token": "SEU_TOKEN_AQUI",
+  "prefix": "!",
+  "status": "astro mídia",
+  "logChannelId": "",
+  "autoRole": {
+    "enabled": true,
+    "roleId": ""
+  },
+  "autoMod": {
+    "enabled": true,
+    "badWords": ["palavrão1", "palavrão2"]
+  },
+  "welcome": {
+    "enabled": true,
+    "channelId": "",
+    "message": "🌟 Bem-vindo(a) à comunidade Astro Mídia!",
+    "embedColor": "#5865F2"
+  },
+  "ticket": {
+    "enabled": true,
+    "categoryId": "",
+    "staffRoleId": "",
+    "embedColor": "#2F3136",
+    "avaliacao": true
+  },
+  "parceria": {
+    "enabled": true,
+    "message": "🤝 Parceria oficial com Astro Mídia! Obrigado por confiar em nós."
+  },
+  "roblox": {
+    "enabled": true
+  }
+}
