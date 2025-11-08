@@ -1,12 +1,14 @@
 {
   "name": "astro-midia",
   "version": "1.0.0",
+  "description": "Bot completo para comunidade Astro Mídia",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.16.3"
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.3.1"
   }
 }
